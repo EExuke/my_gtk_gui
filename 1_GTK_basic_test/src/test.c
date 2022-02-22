@@ -1,3 +1,19 @@
+/**************************************************************************** **
+ * Copyright (C) 2001-2020 Inhand Networks, Inc.
+ **************************************************************************** **/
+
+/* ************************************************************************** **
+ *     MODULE NAME            : system
+ *     LANGUAGE               : C
+ *     TARGET ENVIRONMENT     : Any
+ *     FILE NAME              : test.c
+ *     FIRST CREATION DATE    : 2022/02/22
+ * --------------------------------------------------------------------------
+ *     Version                : 1.0
+ *     Author                 : xuke
+ *     Last Change            : 2022/02/22
+ *     FILE DESCRIPTION       : GTK+ test
+** ************************************************************************** */
 #include <gtk/gtk.h>
 
 void print_msg(GtkWidget *widget, gpointer window)
@@ -31,19 +47,22 @@ void window_init(GtkWidget **window)
 
 void button_item_create(GtkWidget *box)
 {
-	GtkWidget *button = NULL;
-	GtkWidget *halign = NULL;
+	GtkWidget *buttonbox = NULL;
+
+	buttonbox = gtk_box_new(FALSE, 0);
 
 	//创建按钮
-	button = gtk_button_new_with_mnemonic("_B_u_t_t_o_n");
-	gtk_widget_set_tooltip_text(button, "Button widget");
-	g_signal_connect(button, "clicked", G_CALLBACK(print_msg), NULL);
+	GtkWidget *button1 = gtk_button_new_with_mnemonic("_B_u_t_t_o_n_1");
+	gtk_widget_set_tooltip_text(button1, "button1 widget");
+	g_signal_connect(button1, "clicked", G_CALLBACK(print_msg), NULL);
+	gtk_container_add(GTK_CONTAINER(buttonbox), button1); //添加按钮到buttonbox
 
-	/*gtk_box_pack_end(GTK_BOX(box), button, FALSE, TRUE, 0); //将按钮放置在box底部*/
-	//按钮layout布局
-	halign = gtk_alignment_new(0, 0, 0, 0);
-	gtk_container_add(GTK_CONTAINER(halign), button);
-	gtk_container_add(GTK_CONTAINER(box), halign);
+	GtkWidget *button2 = gtk_button_new_with_label("Button2");
+	g_signal_connect(button2, "clicked", G_CALLBACK(print_msg), NULL);
+	gtk_container_add(GTK_CONTAINER(buttonbox), button2);
+
+	/*gtk_box_pack_start(GTK_BOX(box), buttonbox, FALSE, TRUE, 0); //将buttonbox添加到box底部*/
+	gtk_container_add(GTK_CONTAINER(box), buttonbox); //将buttonbox添加到box
 }
 
 void submenu_item_file_create(GtkWidget *box, GtkWidget *window)
@@ -267,6 +286,52 @@ void menubar_item_create(GtkWidget *vbox, GtkWidget *window)
 	gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(menubox), FALSE, FALSE, 0);
 }
 
+void table_item_create(GtkWidget *box)
+{
+	GtkWidget *table = NULL;
+	GtkWidget *button = NULL;
+
+	table = gtk_table_new(2, 2, FALSE); //创建2x2表格,内部等大
+
+	//填充表格内容
+	button = gtk_button_new_with_label("button1"); //创建一个button
+	gtk_table_attach_defaults(GTK_TABLE(table), button, 0, 1, 0, 1); //将button加入到table, 前,后,上,下
+	button = gtk_button_new_with_label("button2");
+	gtk_table_attach_defaults(GTK_TABLE(table), button, 1, 2, 0, 1);
+	button = gtk_button_new_with_label("button3");
+	gtk_table_attach_defaults(GTK_TABLE(table), button, 0, 2, 1, 2);
+
+	gtk_container_add(GTK_CONTAINER(box), table); //添加表格到box
+}
+
+void fixed_item_create(GtkWidget *box)
+{
+	GtkWidget *fixed = NULL;
+
+	fixed = gtk_fixed_new(); //创建一个固定布局容器fixed
+
+	GtkWidget *button1 = gtk_button_new_with_label("button1"); //创建一个button按钮
+	gtk_fixed_put(GTK_FIXED(fixed), button1, 0, 0); //将button1添加到固定容器fixed中(0,0)位置
+
+	GtkWidget *button2 = gtk_button_new_with_label("button2");
+	gtk_fixed_put(GTK_FIXED(fixed), button2, 0, 0);
+	gtk_fixed_move(GTK_FIXED(fixed), button2, 150, 0); //移动button2到(150,0)的位置
+	gtk_widget_set_size_request(button2, 100, 50);     //设置button2的大小
+
+	gtk_container_add(GTK_CONTAINER(box), fixed); //添加固定布局控件到box
+}
+
+void row_entry_item_create(GtkWidget *box)
+{
+	GtkWidget *entry = NULL;
+
+	entry = gtk_entry_new(); //创建一个编辑控件
+	gtk_entry_set_text (entry, "input some"); //设置编辑内容
+	gtk_editable_set_editable(entry, TRUE); //设置允许编辑
+
+	gtk_container_add(GTK_CONTAINER(box), entry); //添加固定布局控件到box
+}
+
 int main(int argc, char *argv[])
 {
 	GtkWidget *window = NULL;
@@ -286,8 +351,17 @@ int main(int argc, char *argv[])
 	//使用工具条
 	toolbar_item_create(vbox);
 
+	//添加行编辑控件
+	row_entry_item_create(vbox);
+
 	//添加按钮
 	button_item_create(vbox);
+
+	//添加表格控件
+	table_item_create(vbox);
+
+	//添加固定布局控件
+	fixed_item_create(vbox);
 
 	//设置右键点击弹出菜单
 	set_click_popmenu(window);

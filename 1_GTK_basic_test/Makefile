@@ -6,21 +6,13 @@ DIR_OBJ = ./obj
 DIR_SRC = ./src
 INC_SRC = -I./inc
 
-LD_LIBS = -ljansson -lm #-lcurl #-lsqlite3
-#gcc
-#INC_SRC += -I/home/xuke/Downloads/jansson-2.13.1/src
-#DIR_LIB += -L/usr/local/lib
-#arm-linux-gcc
-#INC_SRC += -I/home/xuke/workspace/ir8/system/jansson-2.13.1/src
-#DIR_LIB += -L/home/xuke/workspace/ir8/system/target/IR8-qcom-ipq4029/usr/lib
+LD_LIBS = -ljansson -lm
 
 SRC = $(wildcard ${DIR_SRC}/*.c)
 OBJ = $(patsubst %.c, ${DIR_OBJ}/%.o, $(notdir $(SRC)))
 
 BIN_TARGET = test
 
-#CC = arm-linux-gcc
-#CC = mipsel-linux-gcc
 CC = gcc
 CFLAGS = -g -Wall $(INC_SRC) -ljansson
 GTK_FLAGS = `pkg-config --cflags --libs gtk+-3.0`
