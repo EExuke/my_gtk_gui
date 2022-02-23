@@ -6,20 +6,18 @@ DIR_OBJ = ./obj
 DIR_SRC = ./src
 INC_SRC = -I./inc
 
-LD_LIBS = -ljansson -lm
-
 SRC = $(wildcard ${DIR_SRC}/*.c)
 OBJ = $(patsubst %.c, ${DIR_OBJ}/%.o, $(notdir $(SRC)))
 
 BIN_TARGET = test
 
 CC = gcc
-CFLAGS = -g -Wall $(INC_SRC) -ljansson
+CFLAGS = -g -Wall $(INC_SRC)
 GTK_FLAGS = `pkg-config --cflags --libs gtk+-3.0`
 
 ${BIN_TARGET}: ${OBJ}
 	$(warning Building $(BIN_TARGET) ...)
-	@$(CC) $(OBJ) -o $@ $(LD_LIBS) $(DIR_LIB) -pthread $(GTK_FLAGS)
+	@$(CC) $(OBJ) -o $@ $(DIR_LIB) -pthread $(GTK_FLAGS)
 
 ${DIR_OBJ}/%.o: ${DIR_SRC}/%.c
 	$(warning Comping $< ...)

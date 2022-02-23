@@ -28,11 +28,14 @@ void window_init(GtkWidget **window)
 
 	//创建窗口
 	*window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	/**window = gtk_window_new(GTK_WINDOW_POPUP);*/
 
 	//设置窗口基本属性
-	gtk_window_set_title(GTK_WINDOW(*window), "Submenu menu");
-	gtk_window_set_default_size(GTK_WINDOW(*window), 460, 300);
-	gtk_window_set_position(GTK_WINDOW(*window), GTK_WIN_POS_CENTER);
+	gtk_window_set_title(GTK_WINDOW(*window), "Submenu menu"); //标题
+	gtk_window_set_default_size(GTK_WINDOW(*window), 920, 600); //大小
+	/*gtk_widget_set_size_request(GTK_WINDOW(*window), 460, 300);*/
+	gtk_window_set_resizable(GTK_WINDOW(*window), TRUE); //可伸缩性
+	gtk_window_set_position(GTK_WINDOW(*window), GTK_WIN_POS_CENTER); //位置:GTK_WIN_POS_NONE, GTK_WIN_POS_CENTER, GTK_WIN_POS_MOUSE, GTK_WIN_POS_CENTER_ALWAYS
 
 	//设置程序图标(任务栏)
 	icon = gdk_pixbuf_new_from_file("demo.png", &error);
@@ -332,6 +335,97 @@ void row_entry_item_create(GtkWidget *box)
 	gtk_container_add(GTK_CONTAINER(box), entry); //添加固定布局控件到box
 }
 
+void label_item_create(GtkWidget *box)
+{
+	GtkWidget *labelbox = NULL;
+	GtkWidget *label_1 = NULL;
+	GtkWidget *label_2 = NULL;
+	const char *str = NULL;
+
+	//创建标签盒子
+	labelbox = gtk_box_new(FALSE, 0);
+
+	//创建标签
+	label_1 = gtk_label_new("label: ");
+	gtk_container_add(GTK_CONTAINER(labelbox), label_1); //添加标签到box
+
+	str = gtk_label_get_label(GTK_LABEL(label_1)); //获取标签文本内容
+	printf("label_1 str=%s\n", str);
+
+	label_2 = gtk_label_new("label 2");
+	gtk_container_add(GTK_CONTAINER(labelbox), label_2);
+	gtk_label_set_text(GTK_LABEL(label_2), "row of the label text"); //设置label_2的标签的内容
+
+	gtk_container_add(GTK_CONTAINER(box), labelbox); //添加标签盒子到box
+}
+
+void image_item_create(GtkWidget *box)
+{
+	GtkWidget *imagebox = NULL;
+	GtkWidget *image = NULL;
+
+	//创建图片盒子
+	imagebox = gtk_box_new(FALSE, 0);
+
+	//方法1.以图片默认大小来显示，不能修改其大小
+	/*image = gtk_image_new_from_file("./demo.png");*/
+
+	//方法2.使用图片资源GdkPixbuf
+	GdkPixbuf *new_pixbuf = gdk_pixbuf_new_from_file("./demo.png", NULL); //创建图片资源对象pixbuf
+	GdkPixbuf *pixbuf = gdk_pixbuf_scale_simple(new_pixbuf, 200, 200, GDK_INTERP_BILINEAR); //设置图片大小
+	image = gtk_image_new_from_pixbuf(pixbuf); //通过pixbuf创建图片控件image
+	/*gtk_image_set_from_pixbuf(image, pixbuf);  //图片控件替换图片*/
+
+	g_object_unref(new_pixbuf); //释放GdkPixbuf资源
+	g_object_unref(pixbuf); //释放GdkPixbuf资源
+
+	gtk_container_add(GTK_CONTAINER(imagebox), image); //添加图片到图片盒子
+
+	gtk_container_add(GTK_CONTAINER(box), imagebox); //添加图片盒子到box
+}
+
+void progress_update(GtkWidget *widget, gpointer data)
+{
+	char text[8] = "0%";
+	gdouble new_val = gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(data)) + 0.05;
+
+	if (new_val > 1.0) {
+		new_val = 0.0;
+	}
+
+	//设置进度条新值
+	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(data), new_val);
+
+	gdouble now_progress = gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(data)); //获取进度条显示的进度比例
+	snprintf(text, sizeof(text), "%d %%", (int)(100*now_progress));
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(data), text); //设置滑槽上的文本显示
+
+	return;
+}
+
+void progress_item_create(GtkWidget *box)
+{
+	GtkWidget *progress = NULL;
+	GtkWidget *pbutton = NULL;
+	char text[8] = "0%";
+
+	progress = gtk_progress_bar_new();
+
+	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progress), 0.0); //设置进度条显示的进度比例
+
+	gdouble now_progress = gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progress)); //获取进度条显示的进度比例
+	snprintf(text, sizeof(text), "%d %", (int)(100*now_progress));
+
+	gtk_progress_bar_set_show_text(GTK_PROGRESS_BAR(progress), TRUE); //打开滑槽文本显示
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progress), text); //设置滑槽上的文本显示
+
+	pbutton = gtk_button_new_with_mnemonic("up progress");
+	g_signal_connect(G_OBJECT(pbutton), "clicked", G_CALLBACK(progress_update), progress);
+
+	gtk_container_add(GTK_CONTAINER(box), progress); //添加进度条到box
+	gtk_container_add(GTK_CONTAINER(box), pbutton); //添加进度条按钮到box
+}
+
 int main(int argc, char *argv[])
 {
 	GtkWidget *window = NULL;
@@ -366,12 +460,22 @@ int main(int argc, char *argv[])
 	//设置右键点击弹出菜单
 	set_click_popmenu(window);
 
+	//添加标签
+	label_item_create(vbox);
+
+	//添加图片
+	image_item_create(vbox);
+
+	//添加进度条
+	progress_item_create(vbox);
+
 
 	//处理destroy(x)信号
-	g_signal_connect(G_OBJECT(vbox), "destroy", G_CALLBACK(gtk_main_quit), NULL);
+	g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
-	//显示
+	//显示所有
 	gtk_widget_show_all(window);
+
 	gtk_main();
 	return 0;
 }
