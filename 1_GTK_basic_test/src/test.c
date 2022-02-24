@@ -21,6 +21,11 @@ void print_msg(GtkWidget *widget, gpointer window)
 	g_print("Button clicked\n");
 }
 
+void button_sensitive(GtkWidget *widget, gpointer window)
+{
+	gtk_widget_set_sensitive(widget, FALSE); //按钮置灰
+}
+
 void window_init(GtkWidget **window)
 {
 	GdkPixbuf *icon = NULL;
@@ -54,17 +59,33 @@ void button_item_create(GtkWidget *box)
 
 	buttonbox = gtk_box_new(FALSE, 0);
 
-	//创建按钮
+	//创建带助记符的按钮
 	GtkWidget *button1 = gtk_button_new_with_mnemonic("_B_u_t_t_o_n_1");
 	gtk_widget_set_tooltip_text(button1, "button1 widget");
 	g_signal_connect(button1, "clicked", G_CALLBACK(print_msg), NULL);
 	gtk_container_add(GTK_CONTAINER(buttonbox), button1); //添加按钮到buttonbox
 
+	//创建带标签的按钮
 	GtkWidget *button2 = gtk_button_new_with_label("Button2");
 	g_signal_connect(button2, "clicked", G_CALLBACK(print_msg), NULL);
 	gtk_container_add(GTK_CONTAINER(buttonbox), button2);
 
-	/*gtk_box_pack_start(GTK_BOX(box), buttonbox, FALSE, TRUE, 0); //将buttonbox添加到box底部*/
+	//创建空按钮
+	GtkWidget *button3 = gtk_button_new();
+	/*gtk_button_set_label(button3, "Button3"); //设置按钮文本内容*/
+	/*const gchar *str = gtk_button_get_label(button3); //获取按钮的文本内容*/
+	g_signal_connect(button3, "clicked", G_CALLBACK(button_sensitive), NULL); //按下按钮,按钮置灰
+	//给按钮设置图片
+	GdkPixbuf *new_pixbuf = gdk_pixbuf_new_from_file("./p4.png", NULL); //创建图片资源对象pixbuf
+	GdkPixbuf *pixbuf = gdk_pixbuf_scale_simple(new_pixbuf, 200, 30, GDK_INTERP_BILINEAR); //设置图片大小
+	GtkWidget *b_image = gtk_image_new_from_pixbuf(pixbuf); //通过pixbuf创建图片控件image
+	g_object_unref(new_pixbuf); //释放GdkPixbuf资源
+	g_object_unref(pixbuf); //释放GdkPixbuf资源
+	gtk_button_set_image(GTK_BUTTON(button3), b_image); //给按钮设置一张图片
+	/*b_image = gtk_button_get_image(button3); //获取按钮图片*/
+	gtk_button_set_relief(GTK_BUTTON(button3), GTK_RELIEF_NONE); //设置按钮透明背景色
+	gtk_container_add(GTK_CONTAINER(buttonbox), button3);
+
 	gtk_container_add(GTK_CONTAINER(box), buttonbox); //将buttonbox添加到box
 }
 
@@ -324,13 +345,30 @@ void fixed_item_create(GtkWidget *box)
 	gtk_container_add(GTK_CONTAINER(box), fixed); //添加固定布局控件到box
 }
 
+void entry_callback(GtkWidget *widget, gpointer entry)
+{
+	const gchar *entry_text;
+
+	entry_text = gtk_entry_get_text(GTK_ENTRY(entry)); //获取文本内容
+
+	printf("entry content: %s\n", entry_text);
+}
+
 void row_entry_item_create(GtkWidget *box)
 {
 	GtkWidget *entry = NULL;
 
 	entry = gtk_entry_new(); //创建一个编辑控件
-	gtk_entry_set_text (entry, "input some"); //设置编辑内容
-	gtk_editable_set_editable(entry, TRUE); //设置允许编辑
+
+	gtk_entry_set_max_length(GTK_ENTRY(entry), 64); //设置行编辑内容的最大长度
+	gtk_editable_set_editable(GTK_ENTRY(entry), TRUE); //设置允许编辑
+
+	gtk_entry_set_text(GTK_ENTRY(entry), "input some"); //设置编辑内容
+
+	gtk_entry_set_visibility(GTK_ENTRY(entry), FALSE); //设置行编辑的内容是否可视(密码模式)
+
+	//当我们在行编辑中敲回车的时候执行的动作
+	g_signal_connect(entry, "activate", G_CALLBACK(entry_callback), entry);
 
 	gtk_container_add(GTK_CONTAINER(box), entry); //添加固定布局控件到box
 }
@@ -409,12 +447,12 @@ void progress_item_create(GtkWidget *box)
 	GtkWidget *pbutton = NULL;
 	char text[8] = "0%";
 
-	progress = gtk_progress_bar_new();
+	progress = gtk_progress_bar_new(); //创建进度条控件
 
 	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progress), 0.0); //设置进度条显示的进度比例
 
 	gdouble now_progress = gtk_progress_bar_get_fraction(GTK_PROGRESS_BAR(progress)); //获取进度条显示的进度比例
-	snprintf(text, sizeof(text), "%d %", (int)(100*now_progress));
+	snprintf(text, sizeof(text), "%d %%", (int)(100*now_progress));
 
 	gtk_progress_bar_set_show_text(GTK_PROGRESS_BAR(progress), TRUE); //打开滑槽文本显示
 	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progress), text); //设置滑槽上的文本显示
@@ -424,6 +462,32 @@ void progress_item_create(GtkWidget *box)
 
 	gtk_container_add(GTK_CONTAINER(box), progress); //添加进度条到box
 	gtk_container_add(GTK_CONTAINER(box), pbutton); //添加进度条按钮到box
+}
+
+void deal_switch_page(GtkNotebook *notebook, gpointer page, guint page_num, gpointer data)
+{
+	printf("我是第%d个页面\n", page_num+1);
+}
+
+void notebook_item_create(GtkWidget *box)
+{
+	GtkWidget *notebook = NULL;
+
+	notebook = gtk_notebook_new(); //创建笔记本控件
+	/*当切换页面时，会触发"switch-page"信号*/
+
+	gtk_notebook_set_tab_pos(notebook, GTK_POS_TOP); //设置页标签的位置: GTK_POS_LEFT, GTK_POS_RIGHT, GTK_POS_TOP, GTK_POS_BOTTOM
+
+	gtk_notebook_append_page(notebook, gtk_label_new("notebook 1"), gtk_label_new("box")); //追加页面; 成功返回值页面值(从0开始)，失败返回-1
+
+	gtk_notebook_insert_page(notebook, gtk_label_new("notebook 2"), gtk_label_new("box"), -1); //在指定位置添加页面(从0开始)
+
+	gtk_notebook_set_current_page(notebook, 0); //设置起始页,从0开始算
+
+	//处理信号，当切换页面的时候，会触发“switch-page”信号
+	g_signal_connect(notebook, "switch-page", G_CALLBACK(deal_switch_page), NULL);
+
+	gtk_container_add(GTK_CONTAINER(box), notebook); //添加笔记本到box
 }
 
 int main(int argc, char *argv[])
@@ -468,6 +532,9 @@ int main(int argc, char *argv[])
 
 	//添加进度条
 	progress_item_create(vbox);
+
+	//添加多标签笔记本控件
+	notebook_item_create(vbox);
 
 
 	//处理destroy(x)信号
