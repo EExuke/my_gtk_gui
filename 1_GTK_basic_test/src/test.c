@@ -1,7 +1,3 @@
-/**************************************************************************** **
- * Copyright (C) 2001-2020 Inhand Networks, Inc.
- **************************************************************************** **/
-
 /* ************************************************************************** **
  *     MODULE NAME            : system
  *     LANGUAGE               : C
@@ -15,6 +11,7 @@
  *     FILE DESCRIPTION       : GTK+ test
 ** ************************************************************************** */
 #include <gtk/gtk.h>
+#include <gdk/gdkkeysyms-compat.h>
 
 void print_msg(GtkWidget *widget, gpointer window)
 {
@@ -37,7 +34,7 @@ void window_init(GtkWidget **window)
 
 	//设置窗口基本属性
 	gtk_window_set_title(GTK_WINDOW(*window), "Submenu menu"); //标题
-	gtk_window_set_default_size(GTK_WINDOW(*window), 920, 600); //大小
+	gtk_window_set_default_size(GTK_WINDOW(*window), 960, 600); //大小
 	/*gtk_widget_set_size_request(GTK_WINDOW(*window), 460, 300);*/
 	gtk_window_set_resizable(GTK_WINDOW(*window), TRUE); //可伸缩性
 	gtk_window_set_position(GTK_WINDOW(*window), GTK_WIN_POS_CENTER); //位置:GTK_WIN_POS_NONE, GTK_WIN_POS_CENTER, GTK_WIN_POS_MOUSE, GTK_WIN_POS_CENTER_ALWAYS
@@ -49,6 +46,9 @@ void window_init(GtkWidget **window)
 		g_error_free(error);
 	}
 	gtk_window_set_icon(GTK_WINDOW(*window), icon);
+
+	//处理destroy(x)信号: 关闭窗口
+	g_signal_connect(G_OBJECT(*window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
 	g_object_unref(icon);
 }
@@ -376,6 +376,7 @@ void row_entry_item_create(GtkWidget *box)
 void label_item_create(GtkWidget *box)
 {
 	GtkWidget *labelbox = NULL;
+	GtkWidget *eventlbox = NULL;
 	GtkWidget *label_1 = NULL;
 	GtkWidget *label_2 = NULL;
 	const char *str = NULL;
@@ -385,14 +386,23 @@ void label_item_create(GtkWidget *box)
 
 	//创建标签
 	label_1 = gtk_label_new("label: ");
-	gtk_container_add(GTK_CONTAINER(labelbox), label_1); //添加标签到box
-
 	str = gtk_label_get_label(GTK_LABEL(label_1)); //获取标签文本内容
 	printf("label_1 str=%s\n", str);
+	//给label_1创建事件盒子
+	eventlbox = gtk_event_box_new();
+	g_signal_connect(eventlbox, "button_press_event", G_CALLBACK(print_msg), NULL);
+	gtk_container_add(GTK_CONTAINER(eventlbox), label_1); //添加标签到box
+	gtk_container_add(GTK_CONTAINER(labelbox), eventlbox);
 
 	label_2 = gtk_label_new("label 2");
 	gtk_container_add(GTK_CONTAINER(labelbox), label_2);
 	gtk_label_set_text(GTK_LABEL(label_2), "row of the label text"); //设置label_2的标签的内容
+
+	//创建字体、大小
+	PangoFontDescription *font = pango_font_description_from_string("Arial Black"); //设置字体
+	pango_font_description_set_size(font, 20*PANGO_SCALE);             //设置字体大小
+	gtk_widget_modify_font(GTK_WIDGET(label_2), font); //设置字体到标签
+	pango_font_description_free(font); //释放字体对象
 
 	gtk_container_add(GTK_CONTAINER(box), labelbox); //添加标签盒子到box
 }
@@ -490,15 +500,177 @@ void notebook_item_create(GtkWidget *box)
 	gtk_container_add(GTK_CONTAINER(box), notebook); //添加笔记本到box
 }
 
+void layout_item_create(GtkWidget *window, GtkWidget **layout)
+{
+	gint width, height;
+
+	gtk_window_get_size(window, &width, &height); //获取窗口大小
+
+	*layout = gtk_layout_new(NULL, NULL); //创建layout层
+
+	//使用图片资源GdkPixbuf
+	GdkPixbuf *new_pixbuf = gdk_pixbuf_new_from_file("./background.png", NULL); //创建图片资源对象pixbuf
+	GdkPixbuf *pixbuf = gdk_pixbuf_scale_simple(new_pixbuf, width, height, GDK_INTERP_BILINEAR); //设置图片大小
+
+	GtkWidget *image = gtk_image_new_from_pixbuf(pixbuf); //通过pixbuf创建图片控件image
+	g_object_unref(new_pixbuf); //释放GdkPixbuf资源
+	g_object_unref(pixbuf);
+
+	gtk_layout_put(GTK_LAYOUT(*layout), image, 0, 0);
+	gtk_container_add(GTK_CONTAINER(window), *layout);
+}
+
+gboolean deal_time(gpointer* label)
+{
+	char buf[5] = {0};
+	static int num = 10;
+
+	sprintf(buf, "%d", --num);
+	gtk_label_set_text(GTK_LABEL(label), buf);
+
+	if (0 == num) {
+		num = 11;
+		/*g_source_remove(timer); // 移除定时器*/
+		/*return FALSE; //返回FALSE停止*/
+	}
+
+	return TRUE; //返回TRUE再次定时
+}
+
+void timer_item_create(GtkWidget *box)
+{
+	GtkWidget *timebox = NULL;
+	guint time_ms = 1000; //计时时间,ms
+
+	//创建图片盒子
+	timebox = gtk_box_new(FALSE, 0);
+
+	//倒计时显示区
+	GtkWidget *label = gtk_label_new("10");
+	gtk_container_add(GTK_CONTAINER(timebox), label);
+	PangoFontDescription *font = pango_font_description_from_string("Arial Black"); //设置字体
+	pango_font_description_set_size(font, 50*PANGO_SCALE);             //设置字体大小
+	gtk_widget_modify_font(GTK_WIDGET(label), font); //设置字体到标签
+	pango_font_description_free(font); //释放字体对象
+
+	//定时器的创建
+	guint timer = g_timeout_add(time_ms, (GSourceFunc)deal_time, (gpointer)label); //当回调函数返回值为FALSE时停止执行,返回TRUE时再次定时;
+	(void)timer;
+
+	gtk_container_add(GTK_CONTAINER(box), timebox); //添加定时器盒子到box
+}
+
+/*鼠标点击事件产生的信号：button-press-event
+ *鼠标释放事件产生的信号：button-release-event
+ *鼠标移动事件产生的信号：motion-notify-event
+ */
+gboolean deal_mouse_press(GtkWidget *widget, GdkEventButton *event, gpointer data)
+{
+	switch (event->button) {   // 判断鼠标点击的类型
+		case 1:
+			printf("Left Button!!\n");
+			break;
+		case 2:
+			printf("Middle Button!!\n");
+			break;
+		case 3:
+			printf("Right Button!!\n");
+			break;
+		default:
+			/*printf("Unknown Button!!\n");*/
+			break;
+	}
+
+	if(event->type == GDK_2BUTTON_PRESS){
+		printf("double click\n");
+	}
+
+	// 获得点击的坐标值，距离窗口左顶点
+	printf("press_x = %f, press_y = %f\n", event->x, event->y);
+
+	return TRUE;
+}
+
+void mouse_event_set(GtkWidget *box)
+{
+	//使控件接收相应事件
+	gtk_widget_add_events(box, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_MOTION_MASK);
+	/*GDK_BUTTON_PRESS_MASK：鼠标点击;
+	 *GDK_BUTTON_RELEASE_MASK：鼠标释放;
+	 *GDK_BUTTON_MOTION_MASK：鼠标移动;
+	 *GDK_KEY_PRESS_MASK：键盘按下;
+	 *GDK_ENTER_NOTIFY_MASK：进入控件区域;
+	 */
+
+	// "button-press-event" 鼠标点击事件
+	g_signal_connect(box, "button-press-event", G_CALLBACK(deal_mouse_press), NULL);
+	// "motion-notify-event" 鼠标移动事件
+	/*g_signal_connect(box, "motion-notify-event", G_CALLBACK(deal_mouse_press), NULL);*/
+}
+
+// 键盘按下事件处理函数
+gboolean deal_key_press(GtkWidget *widget, GdkEventKey  *event, gpointer data)
+{
+	switch(event->keyval){   // 键盘键值类型
+		case GDK_Up:
+			printf("Up\n");
+			break;
+		case GDK_Left:
+			printf("Left\n");
+			break;
+		case GDK_Right:
+			printf("Right\n");
+			break;
+		case GDK_Down:
+			printf("Down\n");
+			break;
+	}
+
+	printf("keyval = %d\n", event->keyval); //获取键盘键值类型
+
+	return TRUE;
+}
+
+/*键盘事件定义: /usr/include/gtk-3.0/gdk/gdkkeysyms-compat.h*/
+void key_event_set(GtkWidget *window)
+{
+	//注册"key-press-event"处理
+	g_signal_connect(window, "key-press-event", G_CALLBACK(deal_key_press), NULL); 
+	//键盘按下事件产生的信号：key-press-event
+	//键盘释放事件产生的信号：key-release-event
+}
+
+//当窗口初始化，被移动或拉伸时，会触发属性改变事件
+gboolean on_configure_event(GtkWidget * widget, GdkEventConfigure * event, gpointer data)
+{
+	// 窗口的起点坐标
+	printf("x = %d, y = %d\n", event->x, event->y);
+	// 窗口的宽度和高度
+	printf("w = %d, h = %d\n", event->width, event->height);
+
+	return TRUE;
+}
+
+void config_change_event_set(GtkWidget *window)
+{
+	//属性改变事件产生的信号：configure_event
+	g_signal_connect(window, "configure_event", G_CALLBACK(on_configure_event), NULL);
+}
+
 int main(int argc, char *argv[])
 {
 	GtkWidget *window = NULL;
 	GtkWidget *vbox = NULL;
+	/*GtkWidget *layout = NULL;*/
 
 	gtk_init(&argc, &argv);
 
 	//初始化主窗口
 	window_init(&window);
+
+	//layout层
+	/*layout_item_create(window);*/
+
 	//创建子框, 并添加到主窗口中
 	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	gtk_container_add(GTK_CONTAINER(window), vbox);
@@ -536,9 +708,18 @@ int main(int argc, char *argv[])
 	//添加多标签笔记本控件
 	notebook_item_create(vbox);
 
+	//添加定时器控件
+	timer_item_create(vbox);
 
-	//处理destroy(x)信号
-	g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
+	//设置鼠标事件
+	mouse_event_set(vbox);
+
+	//设置键盘事件
+	/*key_event_set(window);*/
+
+	//设置属性改变事件
+	config_change_event_set(window);
+
 
 	//显示所有
 	gtk_widget_show_all(window);
